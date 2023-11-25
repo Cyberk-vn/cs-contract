@@ -1,0 +1,35 @@
+{
+  "name": "coinseeker-contract",
+  "scripts": {
+    "test:plan": "hardhat test test/plan.test.ts",
+    "deploy:plan:testnet": "hardhat run --network testnet scripts/deploy.ts",
+    "plan:set-fees:testnet": "hardhat run --network testnet scripts/set-fees.ts",
+    "deploy:erc4337": ""
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",
+    "@nomicfoundation/hardhat-foundry": "1.0.2",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.9",
+    "@nomicfoundation/hardhat-toolbox": "^2.0.0",
+    "@nomicfoundation/hardhat-verify": "^1.0.0",
+    "@nomiclabs/hardhat-ethers": "^2.0.0",
+    "@nomiclabs/hardhat-etherscan": "^2.0.0",
+    "@openzeppelin/contracts": "^4.9.0",
+    "@openzeppelin/contracts-upgradeable": "^4.9.0",
+    "@openzeppelin/hardhat-upgrades": "^1.28.0",
+    "@typechain/ethers-v5": "^11.1.2",
+    "@typechain/hardhat": "^7.0.0",
+    "@types/chai": "^4.3.7",
+    "@types/mocha": "^10.0.2",
+    "@types/node": "^20.8.4",
+    "chai": "^4.3.10",
+    "ethers": "^5.7.2",
+    "hardhat": "2.14.0",
+    "hardhat-gas-reporter": "^1.0.8",
+    "solidity-coverage": "^0.8.1",
+    "ts-node": "^10.9.1",
+    "typechain": "^8.3.1",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {}
+}
