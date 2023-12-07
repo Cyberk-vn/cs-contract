@@ -2,6 +2,7 @@
   "name": "coinseeker-contract",
   "scripts": {
     "test:plan": "hardhat test test/plan.test.ts",
+    "test:invest": "hardhat test test/invest.test.ts",
     "deploy:plan:testnet": "hardhat run --network testnet scripts/deploy.ts",
     "plan:set-fees:testnet": "hardhat run --network testnet scripts/set-fees.ts",
     "deploy:erc4337": ""
