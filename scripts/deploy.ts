@@ -1,18 +1,21 @@
 import { ethers, upgrades } from 'hardhat';
+import { CONFIG } from './CONFIG';
 
 async function main() {
   const [deployer] = await ethers.getSigners();
 
-  const CSPlan = await ethers.getContractFactory('CSPlan');
+  const CSInvest = await ethers.getContractFactory('CSInvest');
 
-  const testnetToken = '0x1FA6283ec7fBb012407E7A5FC44a78B065b2a1cf';
+  const invest = (await upgrades.deployProxy(
+    CSInvest,
+    [deployer.address, CONFIG.receiver, CONFIG.token, CONFIG.totalRaise, CONFIG.minAmount, CONFIG.tax],
+    {
+      initializer: 'initialize',
+      kind: 'uups',
+    },
+  )) as any;
 
-  const plan = (await upgrades.deployProxy(CSPlan, [deployer.address, deployer.address, testnetToken], {
-    initializer: 'initialize',
-    kind: 'uups',
-  })) as any;
-
-  console.log(`plan=`, plan.address);
+  console.log(`invest=`, invest.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
