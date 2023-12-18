@@ -8,7 +8,16 @@ async function main() {
 
   const invest = (await upgrades.deployProxy(
     CSInvest,
-    [deployer.address, CONFIG.receiver, CONFIG.token, CONFIG.totalRaise, CONFIG.minAmount, CONFIG.tax],
+    [
+      deployer.address,
+      CONFIG.receiver,
+      CONFIG.token,
+      CONFIG.totalRaise,
+      CONFIG.endTime,
+      CONFIG.tax,
+      CONFIG.minAmount,
+      CONFIG.price,
+    ],
     {
       initializer: 'initialize',
       kind: 'uups',
