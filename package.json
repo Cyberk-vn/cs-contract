@@ -8,6 +8,7 @@
     "plan:set-fees:testnet": "hardhat run --network testnet scripts/set-fees.ts",
     "invest:test====": "",
     "deploy:invest:test": "hardhat run --network testnet scripts/deploy.ts",
+    "invest:set-amount:testnet": "hardhat run --network testnet scripts/set-min-amount.ts",
     "=======": ""
   },
   "devDependencies": {
