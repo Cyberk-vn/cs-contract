@@ -10,7 +10,7 @@ const test_config = {
   minAmount: parseUnits('0', 18),
   totalRaise: parseUnits('30000', 18),
   tax: parseUnits('5', 18), // 5%
-  endTime: DateTime.now().plus({ days: 1 }).toUnixInteger(),
+  endTime: DateTime.fromISO('2023-12-20T07:00:00.000Z').toUnixInteger(),
   price: parseUnits('0.05333', 18),
 };
 

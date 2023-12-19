@@ -9,6 +9,7 @@
     "invest:test====": "",
     "deploy:invest:test": "hardhat run --network testnet scripts/deploy.ts",
     "invest:set-amount:testnet": "hardhat run --network testnet scripts/set-min-amount.ts",
+    "invest:set-endtime:testnet": "hardhat run --network testnet scripts/set-end-time.ts",
     "=======": ""
   },
   "devDependencies": {
