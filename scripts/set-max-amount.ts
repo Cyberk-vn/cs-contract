@@ -7,13 +7,11 @@ async function main() {
   console.log(`deployer=`, deployer.address);
   const csinvest = await getContract();
   await csinvest
-    .setMinAmount(
-      ethers.utils.parseEther('2'), // usd
+    .setMaxAmount(
+      ethers.utils.parseEther('10'), // usd
       { gasLimit: '999999' },
     )
     .then((x) => x.wait());
-
-  csinvest.minAmount();
 
   console.log(`finished=`);
 }

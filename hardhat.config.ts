@@ -10,7 +10,7 @@ let pks = {
   mainnet: [],
 };
 try {
-  pks = require('./.pks').pks;
+  pks = require('./.pks.js');
 } catch (error) {
   console.log('error', error);
 }
@@ -30,6 +30,10 @@ const config: HardhatUserConfig = {
     testnet: {
       url: 'https://data-seed-prebsc-1-s3.binance.org:8545',
       accounts: pks.testnet,
+    },
+    mainnet: {
+      url: 'https://bsc-dataseed.binance.org/',
+      accounts: pks.mainnet,
     },
   },
 };
