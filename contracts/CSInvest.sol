@@ -27,6 +27,7 @@ contract CSInvest is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradea
   uint256 public totalContributed;
   uint256 public taxPercentage;
   uint256 public minAmount;
+  uint256 public maxAmount;
   uint256 public price;
 
   address[] public buyers;
@@ -45,6 +46,7 @@ contract CSInvest is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradea
   event Claimed(address indexed buyer, uint256 amount, uint256 tokenAmount);
 
   error InvalidContributedAmount(uint256 amount);
+  error OverMaxAmount();
   error OverTotalRaise(uint256 contributedAmount, uint256 amount);
   error Ended();
 
@@ -61,6 +63,7 @@ contract CSInvest is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradea
     uint256 _endTime,
     uint256 _tax,
     uint256 _minAmount,
+    uint256 _maxAmount,
     uint256 _price
   ) public initializer {
     __UUPSUpgradeable_init();
@@ -75,6 +78,7 @@ contract CSInvest is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradea
 
     totalRaise = _totalRaise;
     minAmount = _minAmount;
+    maxAmount = _maxAmount;
     taxPercentage = _tax;
     price = _price;
     endTime = _endTime;
@@ -95,6 +99,7 @@ contract CSInvest is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradea
     feeToken.transferFrom(msg.sender, address(this), amount + taxAmount);
 
     BuyerInfo storage buyerInfo = buyerInfos[msg.sender];
+    if (buyerInfo.amount + amount > maxAmount) revert OverMaxAmount();
     if (buyerInfo.amount == 0) {
       buyers.push(msg.sender);
     }
@@ -192,6 +197,10 @@ contract CSInvest is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradea
 
   function setMinAmount(uint256 _value) external onlyRole(ADMIN_ROLE) {
     minAmount = _value;
+  }
+
+  function setMaxAmount(uint256 _value) external onlyRole(ADMIN_ROLE) {
+    maxAmount = _value;
   }
 
   function setEndTime(uint256 _value) external onlyRole(ADMIN_ROLE) {

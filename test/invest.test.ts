@@ -21,7 +21,8 @@ let receiver: SignerWithAddress;
 const FEE_DECIMALS = 9;
 const TOKEN_DECIMALS = 6;
 const TOTAL_RAISE = parseUnits('400', FEE_DECIMALS);
-const MINT_AMOUNT = parseUnits('10', FEE_DECIMALS);
+const MIN_AMOUNT = parseUnits('10', FEE_DECIMALS);
+const MAX_AMOUNT = parseUnits('250', FEE_DECIMALS);
 let endTime = 0;
 const price = parseUnits('0.5', FEE_DECIMALS);
 const TOKEN_AMOUNT = parseUnits('800', TOKEN_DECIMALS); // 400 / 0.5
@@ -39,7 +40,7 @@ describe('CSInvest', function () {
     endTime = (await time.latest()) + time.duration.days(1);
     invest = (await upgrades.deployProxy(
       CSInvest,
-      [deployer.address, receiver.address, feeToken.address, TOTAL_RAISE, endTime, TAX, MINT_AMOUNT, price],
+      [deployer.address, receiver.address, feeToken.address, TOTAL_RAISE, endTime, TAX, MIN_AMOUNT, MAX_AMOUNT, price],
       {
         initializer: 'initialize',
       },
@@ -113,6 +114,13 @@ describe('CSInvest', function () {
     expect(allBuyers).to.deep.equal([user1.address, user2.address]);
     expect(infos[0].amount).to.equal(parseUnits('200', FEE_DECIMALS));
     expect(infos[1].amount).to.equal(parseUnits('100', FEE_DECIMALS));
+  });
+
+  it("User contribute over user's max amount", async function () {
+    await expect(invest.connect(user1).contribute(parseUnits('100', FEE_DECIMALS))).to.revertedWithCustomError(
+      invest,
+      'OverMaxAmount',
+    );
   });
 
   it('User contribute over total raise', async function () {

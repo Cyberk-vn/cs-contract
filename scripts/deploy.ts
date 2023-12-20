@@ -16,6 +16,7 @@ async function main() {
       CONFIG.endTime,
       CONFIG.tax,
       CONFIG.minAmount,
+      CONFIG.maxAmount,
       CONFIG.price,
     ],
     {
