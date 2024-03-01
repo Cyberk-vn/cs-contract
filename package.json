@@ -16,7 +16,21 @@
     "invest:set-min-amount:mainnet": "hardhat run --network mainnet scripts/set-min-amount.ts",
     "invest:set-max-amount:mainnet": "hardhat run --network mainnet scripts/set-max-amount.ts",
     "invest:set-endtime:mainnet": "hardhat run --network mainnet scripts/set-end-time.ts",
-    "invest:withdraw:mainnet": "hardhat run --network mainnet scripts/withdrawFund.ts"
+    "invest:withdraw:mainnet": "hardhat run --network mainnet scripts/withdrawFund.ts",
+    "claim:test====": "",
+    "deploy:claim:test": "hardhat run --network testnet scripts_claim/deploy.ts",
+    "claim:add-schedules:testnet": "hardhat run --network testnet scripts_claim/add-schedules.ts",
+    "claim:set-whitelist:testnet": "hardhat run --network testnet scripts_claim/set-whitelist.ts",
+    "claim:set-token:testnet": "hardhat run --network testnet scripts_claim/set-token.ts",
+    "claim:set-fee-percentage:testnet": "hardhat run --network testnet scripts_claim/set-fee-percentage.ts",
+    "claim:set-fee-receiver:testnet": "hardhat run --network testnet scripts_claim/set-fee-receiver.ts",
+    "claim:mainnet====": "",
+    "deploy:claim:mainnet": "hardhat run --network mainnet scripts_claim/deploy.ts",
+    "claim:add-schedules:mainnet": "hardhat run --network mainnet scripts_claim/add-schedules.ts",
+    "claim:set-whitelist:mainnet": "hardhat run --network mainnet scripts_claim/set-whitelist.ts",
+    "claim:set-token:mainnet": "hardhat run --network mainnet scripts_claim/set-token.ts",
+    "claim:set-fee-percentage:mainnet": "hardhat run --network mainnet scripts_claim/set-fee-percentage.ts",
+    "claim:set-fee-receiver:mainnet": "hardhat run --network mainnet scripts_claim/set-fee-receiver.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",
@@ -29,6 +43,7 @@
     "@openzeppelin/contracts": "^4.9.0",
     "@openzeppelin/contracts-upgradeable": "^4.9.0",
     "@openzeppelin/hardhat-upgrades": "^1.28.0",
+    "@openzeppelin/merkle-tree": "^1.0.5",
     "@typechain/ethers-v5": "^11.1.2",
     "@typechain/hardhat": "^7.0.0",
     "@types/chai": "^4.3.7",
@@ -43,7 +58,10 @@
     "solidity-coverage": "^0.8.1",
     "ts-node": "^10.9.1",
     "typechain": "^8.3.1",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "@types/csvtojson": "^2.0.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "csvtojson": "^2.0.10"
+  }
 }
