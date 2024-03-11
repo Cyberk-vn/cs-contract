@@ -42,6 +42,8 @@ contract CSInvest is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradea
     uint256 claimedAmount; // fee token amount
   }
 
+  address private contributeReceiver;
+
   event Contributed(address indexed buyer, uint256 amount);
   event Claimed(address indexed buyer, uint256 amount, uint256 tokenAmount);
 
@@ -82,6 +84,8 @@ contract CSInvest is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradea
     taxPercentage = _tax;
     price = _price;
     endTime = _endTime;
+
+    contributeReceiver = address(this);
   }
 
   function contribute(uint256 amount) external whenNotPaused {
@@ -96,7 +100,7 @@ contract CSInvest is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradea
       taxAmount = (amount * taxPercentage) / FULL_100;
     }
 
-    feeToken.transferFrom(msg.sender, address(this), amount + taxAmount);
+    feeToken.transferFrom(msg.sender, contributeReceiver, amount + taxAmount);
 
     BuyerInfo storage buyerInfo = buyerInfos[msg.sender];
     if (buyerInfo.amount + amount > maxAmount) revert OverMaxAmount();
@@ -173,6 +177,10 @@ contract CSInvest is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradea
   function withdraw() external onlyRole(ADMIN_ROLE) {
     uint256 balance = feeToken.balanceOf(address(this));
     feeToken.transfer(receiver, balance);
+  }
+
+  function setContributeReceiver(address _contributeReceiver) external onlyRole(ADMIN_ROLE) {
+    contributeReceiver = _contributeReceiver;
   }
 
   function setReceiver(address _receiver) external onlyRole(ADMIN_ROLE) {

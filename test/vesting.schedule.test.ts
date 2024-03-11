@@ -21,11 +21,11 @@ let otherOwners: SignerWithAddress[];
 
 const DAY_IN_SECONDS = 24 * 60 * 60;
 
-const currentUnixTime = Math.floor(Date.now() / 1000);
+let currentUnixTime = Math.floor(Date.now() / 1000);
 
-const test_claimMaximumDates1 = [['0', `${currentUnixTime + 1 * DAY_IN_SECONDS}`, parseEther('50')]];
-const test_claimMaximumDates2 = [['1', `${currentUnixTime + 2 * DAY_IN_SECONDS}`, parseEther('60')]];
-const test_claimMaximumDates3 = [
+let test_claimMaximumDates1 = [['0', `${currentUnixTime + 1 * DAY_IN_SECONDS}`, parseEther('50')]];
+let test_claimMaximumDates2 = [['1', `${currentUnixTime + 2 * DAY_IN_SECONDS}`, parseEther('60')]];
+let test_claimMaximumDates3 = [
   ['1', `${currentUnixTime + 2 * DAY_IN_SECONDS}`, parseEther('70')],
   ['2', `${currentUnixTime + 3 * DAY_IN_SECONDS}`, parseEther('80')],
   ['3', `${currentUnixTime + 4 * DAY_IN_SECONDS}`, parseEther('90')],
@@ -38,6 +38,16 @@ describe('Vesting', function () {
   this.timeout(100000);
   it('Setup', async function () {
     [deployer, owner1, owner2, owner3, owner4, owner5, ...otherOwners] = await ethers.getSigners();
+    currentUnixTime = await time.latest();
+
+    test_claimMaximumDates1 = [['0', `${currentUnixTime + 1 * DAY_IN_SECONDS}`, parseEther('50')]];
+    test_claimMaximumDates2 = [['1', `${currentUnixTime + 2 * DAY_IN_SECONDS}`, parseEther('60')]];
+    test_claimMaximumDates3 = [
+      ['1', `${currentUnixTime + 2 * DAY_IN_SECONDS}`, parseEther('70')],
+      ['2', `${currentUnixTime + 3 * DAY_IN_SECONDS}`, parseEther('80')],
+      ['3', `${currentUnixTime + 4 * DAY_IN_SECONDS}`, parseEther('90')],
+      ['4', `${currentUnixTime + 5 * DAY_IN_SECONDS}`, parseEther('100')],
+    ];
   });
   it('Deploy', async function () {
     const ScheduleVestingImp = await ethers.getContractFactory('ScheduleVestingImp');

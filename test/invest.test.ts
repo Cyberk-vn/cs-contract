@@ -16,11 +16,12 @@ let admin: SignerWithAddress;
 let user1: SignerWithAddress;
 let user2: SignerWithAddress;
 let user3: SignerWithAddress;
+let contributeReceiver: SignerWithAddress;
 let receiver: SignerWithAddress;
 
 const FEE_DECIMALS = 9;
 const TOKEN_DECIMALS = 6;
-const TOTAL_RAISE = parseUnits('400', FEE_DECIMALS);
+const TOTAL_RAISE = parseUnits('500', FEE_DECIMALS);
 const MIN_AMOUNT = parseUnits('10', FEE_DECIMALS);
 const MAX_AMOUNT = parseUnits('250', FEE_DECIMALS);
 let endTime = 0;
@@ -30,7 +31,7 @@ const TAX = parseUnits('5', 18);
 
 describe('CSInvest', function () {
   before(async function () {
-    [guest, deployer, admin, user1, user2, user3, receiver] = await ethers.getSigners();
+    [guest, deployer, admin, user1, user2, user3, receiver, contributeReceiver] = await ethers.getSigners();
     const CSInvest = await ethers.getContractFactory('CSInvest');
     const Token = await ethers.getContractFactory('Token');
 
@@ -45,6 +46,8 @@ describe('CSInvest', function () {
         initializer: 'initialize',
       },
     )) as CSInvest;
+
+    invest.connect(deployer).grantRole(await invest.ADMIN_ROLE(), admin.address);
   });
 
   it('Setup token', async function () {
@@ -116,6 +119,18 @@ describe('CSInvest', function () {
     expect(infos[1].amount).to.equal(parseUnits('100', FEE_DECIMALS));
   });
 
+  it('contribute with receiver setted', async () => {
+    await invest.connect(admin).setContributeReceiver(await contributeReceiver.getAddress());
+    await expect(invest.connect(user2).contribute(parseUnits('100', FEE_DECIMALS)))
+      .to.emit(invest, 'Contribution')
+      .withArgs(user2.address, parseUnits('100', FEE_DECIMALS))
+      .changeTokenBalances(
+        feeToken,
+        [user2, contributeReceiver.address],
+        [parseUnits('-105', FEE_DECIMALS), parseUnits('105', FEE_DECIMALS)],
+      );
+  });
+
   it("User contribute over user's max amount", async function () {
     await expect(invest.connect(user1).contribute(parseUnits('100', FEE_DECIMALS))).to.revertedWithCustomError(
       invest,
@@ -126,7 +141,7 @@ describe('CSInvest', function () {
   it('User contribute over total raise', async function () {
     await expect(invest.connect(user3).contribute(parseUnits('200', FEE_DECIMALS)))
       .to.revertedWithCustomError(invest, 'OverTotalRaise')
-      .withArgs(parseUnits('300', FEE_DECIMALS), parseUnits('200', FEE_DECIMALS));
+      .withArgs(parseUnits('400', FEE_DECIMALS), parseUnits('200', FEE_DECIMALS));
   });
 
   it('Withdraw', async function () {
