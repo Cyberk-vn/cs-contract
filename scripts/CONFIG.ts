@@ -21,7 +21,8 @@ const mainnet_config = {
 
   // receiver: '0x0cF34128CF383eB709c36c16cDa59F3Ae99B8Fb1',
   receiver: '0x9D992E869eecc454938C2Ac5590872c4752BF3B5', // acc deploy
-  token: '0x55d398326f99059fF775485246999027B3197955', // USDT
+  // token: '0xdAC17F958D2ee523a2206206994597C13D831ec7', // USDT in eth - decimal 6
+  token: '0x55d398326f99059fF775485246999027B3197955', // USDT in bsc - decimal 18
   minAmount: parseUnits('0.01', 18), // price in usd
   maxAmount: parseUnits('0.1', 18), // price in usd
   totalRaise: parseUnits('1', 18), // price in usd

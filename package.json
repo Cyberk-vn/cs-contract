@@ -16,7 +16,13 @@
     "invest:set-min-amount:mainnet": "hardhat run --network mainnet scripts/set-min-amount.ts",
     "invest:set-max-amount:mainnet": "hardhat run --network mainnet scripts/set-max-amount.ts",
     "invest:set-endtime:mainnet": "hardhat run --network mainnet scripts/set-end-time.ts",
-    "invest:withdraw:mainnet": "hardhat run --network mainnet scripts/withdrawFund.ts"
+    "invest:withdraw:mainnet": "hardhat run --network mainnet scripts/withdrawFund.ts",
+    "invest:eth====": "",
+    "deploy:invest:eth": "hardhat run --network eth scripts/deploy.ts",
+    "invest:set-min-amount:eth": "hardhat run --network eth scripts/set-min-amount.ts",
+    "invest:set-max-amount:eth": "hardhat run --network eth scripts/set-max-amount.ts",
+    "invest:set-endtime:eth": "hardhat run --network eth scripts/set-end-time.ts",
+    "invest:withdraw:eth": "hardhat run --network eth scripts/withdrawFund.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",

@@ -35,6 +35,10 @@ const config: HardhatUserConfig = {
       url: 'https://bsc-dataseed.binance.org/',
       accounts: pks.mainnet,
     },
+    eth: {
+      url: 'https://eth.llamarpc.com',
+      accounts: pks.mainnet,
+    },
   },
 };
 
