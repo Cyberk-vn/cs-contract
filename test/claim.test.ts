@@ -14,6 +14,7 @@ let token: Token;
 let guest: SignerWithAddress;
 let deployer: SignerWithAddress;
 let admin: SignerWithAddress;
+let poolOwner: SignerWithAddress;
 let user1: SignerWithAddress;
 let feeReceiver: SignerWithAddress;
 let user3: SignerWithAddress;
@@ -24,7 +25,7 @@ let endTime = 0;
 const TOKEN_AMOUNT = parseUnits('800', TOKEN_DECIMALS); // 800
 
 let values = [];
-let tree;
+let tree: any;
 
 let proof1: string[] = [];
 let proof3: string[] = [];
@@ -33,18 +34,46 @@ const DAY_IN_SECONDS = 24 * 60 * 60;
 
 const currentUnixTime = Math.floor(Date.now() / 1000);
 
-const test_claimMaximumDates1 = [['0', `${currentUnixTime + 1 * DAY_IN_SECONDS}`, parseEther('50')]];
-const test_claimMaximumDates2 = [['1', `${currentUnixTime + 2 * DAY_IN_SECONDS}`, parseEther('60')]];
 const test_claimMaximumDates3 = [
-  ['1', `${currentUnixTime + 2 * DAY_IN_SECONDS}`, parseEther('70')],
-  ['2', `${currentUnixTime + 3 * DAY_IN_SECONDS}`, parseEther('80')],
-  ['3', `${currentUnixTime + 4 * DAY_IN_SECONDS}`, parseEther('90')],
-  ['4', `${currentUnixTime + 5 * DAY_IN_SECONDS}`, parseEther('100')],
+  {
+    date: `${currentUnixTime + 1 * DAY_IN_SECONDS}`,
+    endDate: `${currentUnixTime + 1 * DAY_IN_SECONDS}`,
+    unlockPercent: parseUnits('50', 18),
+    period: '0',
+  },
+  {
+    date: `${currentUnixTime + 2 * DAY_IN_SECONDS}`,
+    endDate: `${currentUnixTime + 2 * DAY_IN_SECONDS}`,
+    unlockPercent: parseUnits('70', 18),
+    period: '0',
+  },
+  {
+    date: `${currentUnixTime + 3 * DAY_IN_SECONDS}`,
+    endDate: `${currentUnixTime + 3 * DAY_IN_SECONDS}`,
+    unlockPercent: parseUnits('80', 18),
+    period: '0',
+  },
+  {
+    date: `${currentUnixTime + 4 * DAY_IN_SECONDS}`,
+    endDate: `${currentUnixTime + 4 * DAY_IN_SECONDS}`,
+    unlockPercent: parseUnits('90', 18),
+    period: '0',
+  },
+  {
+    date: `${currentUnixTime + 5 * DAY_IN_SECONDS}`,
+    endDate: `${currentUnixTime + 5 * DAY_IN_SECONDS}`,
+    unlockPercent: parseUnits('100', 18),
+    period: '0',
+  },
+  // [`${currentUnixTime + 2 * DAY_IN_SECONDS}`, `${currentUnixTime + 2 * DAY_IN_SECONDS}`, parseEther('70'), '0'],
+  // [`${currentUnixTime + 3 * DAY_IN_SECONDS}`, `${currentUnixTime + 3 * DAY_IN_SECONDS}`, parseEther('80'), '0'],
+  // [`${currentUnixTime + 4 * DAY_IN_SECONDS}`, `${currentUnixTime + 4 * DAY_IN_SECONDS}`, parseEther('90'), '0'],
+  // [`${currentUnixTime + 5 * DAY_IN_SECONDS}`, `${currentUnixTime + 5 * DAY_IN_SECONDS}`, parseEther('100'), '0'],
 ];
 
 describe('CSClaim', function () {
   before(async function () {
-    [guest, deployer, admin, user1, feeReceiver, user3] = await ethers.getSigners();
+    [guest, deployer, admin, poolOwner, user1, feeReceiver, user3] = await ethers.getSigners();
     const CSClaim = await ethers.getContractFactory('CSClaim');
     const Token = await ethers.getContractFactory('Token');
 
@@ -52,7 +81,7 @@ describe('CSClaim', function () {
     token = (await Token.connect(deployer).deploy('IDO', 'IDO', TOKEN_DECIMALS)) as Token;
 
     endTime = (await time.latest()) + time.duration.days(1);
-    csClaim = (await upgrades.deployProxy(CSClaim, [deployer.address, feeReceiver.address, '0', token.address], {
+    csClaim = (await upgrades.deployProxy(CSClaim, [deployer.address, feeReceiver.address, '0'], {
       initializer: 'initialize',
     })) as CSClaim;
   });
@@ -64,9 +93,9 @@ describe('CSClaim', function () {
         await feeToken.connect(user).approve(csClaim.address, parseUnits('1000', FEE_DECIMALS));
       }),
     );
-    await token.transfer(csClaim.address, parseUnits('10000', TOKEN_DECIMALS));
+    await token.transfer(poolOwner.address, parseUnits('10000', TOKEN_DECIMALS));
 
-    await expect(await token.balanceOf(csClaim.address)).to.eq(parseUnits('10000', TOKEN_DECIMALS));
+    expect(await token.balanceOf(poolOwner.address)).to.eq(parseUnits('10000', TOKEN_DECIMALS));
   });
 
   it('Setup root', async () => {
@@ -86,100 +115,89 @@ describe('CSClaim', function () {
       }
     }
 
-    await csClaim.connect(deployer).setRoot(tree.root);
-
-    await expect(csClaim.connect(user1).claim(true, '2', proof1)).to.reverted;
+    await csClaim.connect(deployer).adminAdd(poolOwner.address, token.address, tree.root, parseEther('0'));
   });
-
-  it('Initial check', async function () {
-    // await csClaim.connect(deployer).setToken(token.address);
-    await token.transfer(csClaim.address, TOKEN_AMOUNT);
-
-    expect(await csClaim.connect(deployer).getMaxPercentage()).eq(BigNumber.from('0'));
-    await csClaim.connect(deployer).invalidate();
+  it('Fund', async function () {
+    await token.connect(poolOwner).approve(csClaim.address, parseUnits('10000', TOKEN_DECIMALS));
+    await csClaim.connect(poolOwner).fund(0, parseUnits('10000', TOKEN_DECIMALS));
   });
-
   it('add vesting', async function () {
-    await csClaim.connect(deployer).addSchedules(test_claimMaximumDates1 as any);
-    expect(await csClaim.connect(deployer).getMaxPercentage()).eq(BigNumber.from('0'));
-    await time.increaseTo(+test_claimMaximumDates1[0][1]);
-    expect(await csClaim.connect(deployer).getMaxPercentage()).eq(test_claimMaximumDates1[0][2]);
+    await csClaim.connect(deployer).setSchedules(0, test_claimMaximumDates3);
+    // expect(await csClaim.connect(deployer).getMaxPercentage()).eq(BigNumber.from('0'));
+    // await time.increaseTo(+test_claimMaximumDates1[0][1]);
+    // expect(await csClaim.connect(deployer).getMaxPercentage()).eq(test_claimMaximumDates1[0][2]);
   });
 
-  it('add new ok', async function () {
-    await csClaim.connect(deployer).addSchedules(test_claimMaximumDates2 as any);
-  });
-  it('add and update multiple', async function () {
-    await csClaim.connect(deployer).addSchedules(test_claimMaximumDates3 as any);
-  });
-  it('invalidate', async function () {
-    await csClaim.connect(deployer).invalidate();
-    expect(await csClaim.connect(deployer).currentScheduleId()).eq(BigNumber.from('0'));
-    expect(await csClaim.connect(deployer).getMaxPercentage()).eq(parseEther('50'));
+  it('Claim', async function () {
+    // expect(await csClaim.connect(deployer).currentScheduleId()).eq(BigNumber.from('0'));
+    // expect(await csClaim.connect(deployer).getMaxPercentage()).eq(parseEther('50'));
+    await time.increaseTo(+test_claimMaximumDates3[0].date);
 
     // 50% => TOKEN_AMOUNT/2 => 400
-    await expect(csClaim.connect(user1).claim(true, TOKEN_AMOUNT, proof1)).changeTokenBalance(
+    await expect(csClaim.connect(user1).claim(0, 0, TOKEN_AMOUNT, proof1)).changeTokenBalance(
       token,
       user1,
       parseUnits('400', TOKEN_DECIMALS),
     );
 
-    await time.increaseTo(+test_claimMaximumDates3[0][1]);
-    await csClaim.connect(deployer).invalidate();
-    expect(await csClaim.connect(deployer).currentScheduleId()).eq(BigNumber.from('1'));
-    expect(await csClaim.connect(deployer).getMaxPercentage()).eq(parseEther('70'));
-    // 70-50 => 20% => 160
-    await expect(csClaim.connect(user1).claim(true, TOKEN_AMOUNT, proof1)).changeTokenBalance(
+    // 70%
+    await time.increaseTo(+test_claimMaximumDates3[1].date);
+    let tx = csClaim.connect(user1).claim(0, 1, TOKEN_AMOUNT, proof1);
+    await expect(tx).changeTokenBalance(token, user1, parseUnits('160', TOKEN_DECIMALS));
+    const gas = (await tx.then((x) => x.wait())).gasUsed;
+    console.log('Gas used:', gas.toString());
+
+    // np when claim 0 again
+    await expect(csClaim.connect(user1).claim(0, 0, TOKEN_AMOUNT, proof1)).changeTokenBalance(
       token,
       user1,
-      parseUnits('160', TOKEN_DECIMALS),
+      parseUnits('0', TOKEN_DECIMALS),
     );
 
-    await time.increaseTo(+`${currentUnixTime + 4.5 * DAY_IN_SECONDS}`);
-    await csClaim.connect(deployer).invalidate();
-    expect(await csClaim.connect(deployer).currentScheduleId()).eq(BigNumber.from('3'));
-    expect(await csClaim.connect(deployer).getMaxPercentage()).eq(parseEther('90'));
-    // 90 - 70 => 20% => 160
-    await expect(csClaim.connect(user1).claim(true, TOKEN_AMOUNT, proof1)).changeTokenBalance(
-      token,
-      user1,
-      parseUnits('160', TOKEN_DECIMALS),
-    );
-
+    // 100%
     await time.increaseTo(+`${currentUnixTime + 5 * DAY_IN_SECONDS}`);
-    await csClaim.connect(deployer).invalidate();
-    expect(await csClaim.connect(deployer).currentScheduleId()).eq(BigNumber.from('4'));
-    expect(await csClaim.connect(deployer).getMaxPercentage()).eq(parseEther('100'));
-    // 10%
-    await expect(csClaim.connect(user1).claim(true, TOKEN_AMOUNT, proof1)).changeTokenBalance(
-      token,
-      user1,
-      parseUnits('80', TOKEN_DECIMALS),
-    );
+    tx = csClaim.connect(user1).claim(0, 4, TOKEN_AMOUNT, proof1);
+    await expect(tx).changeTokenBalance(token, user1, parseUnits('240', TOKEN_DECIMALS));
 
+    // no more
     await time.increaseTo(+`${currentUnixTime + 10 * DAY_IN_SECONDS}`);
-    await csClaim.connect(deployer).invalidate();
-    expect(await csClaim.connect(deployer).currentScheduleId()).eq(BigNumber.from('4'));
-    expect(await csClaim.connect(deployer).getMaxPercentage()).eq(parseEther('100'));
-    // 0%
-    await expect(csClaim.connect(user1).claim(true, TOKEN_AMOUNT, proof1)).changeTokenBalance(token, user1, '0');
+    tx = csClaim.connect(user1).claim(0, 4, TOKEN_AMOUNT, proof1);
+    await expect(tx).changeTokenBalance(token, user1, parseUnits('0', TOKEN_DECIMALS));
+
+    const pool = await csClaim.pools(0);
+    expect(pool.claimedAmount).to.eq(TOKEN_AMOUNT);
   });
 
   it('Set fee', async () => {
-    await csClaim.connect(deployer).setFeePercentage(parseEther('1'));
+    await csClaim.connect(deployer).setPoolFeePercentage(0, parseUnits('1', 18));
   });
 
   it('Should user 3 claim and lose fee percentage', async () => {
     const feeReceiverBalance = await token.balanceOf(feeReceiver.address);
 
-    // 100% - 10% fee => 90%
-    await expect(csClaim.connect(user3).claim(true, TOKEN_AMOUNT, proof3)).changeTokenBalance(
+    // 100% - 1% fee => 99%
+    await expect(csClaim.connect(user3).claim(0, 4, TOKEN_AMOUNT, proof3)).changeTokenBalance(
       token,
       user3,
       parseUnits('792', TOKEN_DECIMALS),
     );
 
     const afterBalance = await token.balanceOf(feeReceiver.address);
-    await expect(afterBalance).to.eq(feeReceiverBalance.add(parseUnits('8', TOKEN_DECIMALS)));
+    expect(afterBalance).to.eq(feeReceiverBalance.add(parseUnits('8', TOKEN_DECIMALS)));
+  });
+  it('PoolOwner can not create pool', async () => {
+    await expect(csClaim.connect(poolOwner).syncdicateAdd(token.address, tree.root)).to.be.revertedWith(
+      /AccessControl/,
+    );
+  });
+  it('Add syncdicate', async () => {
+    await csClaim.connect(deployer).grantRole(await csClaim.SYNDICATE_ROLE(), poolOwner.address);
+  });
+  it('Pool2', async () => {
+    const tx = csClaim.connect(poolOwner).syncdicateAdd(token.address, tree.root);
+    await expect(tx).emit(csClaim, 'PoolCreated').withArgs(1, poolOwner.address, token.address);
+  });
+  it('Claim2', async () => {
+    // first 10%, cliff 6M 1% every day
   });
 });

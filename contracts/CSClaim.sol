@@ -6,35 +6,58 @@ import {UUPSUpgradeable} from '@openzeppelin/contracts-upgradeable/proxy/utils/U
 
 import {AccessControlUpgradeable} from '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol';
 import {PausableUpgradeable} from '@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol';
-import {IERC20Metadata} from '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
-import {ScheduleVestingBase} from './vestings/ScheduleVestingBase.sol';
+import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import {SafeERC20} from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/utils/cryptography/MerkleProof.sol';
 
-contract CSClaim is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable, ScheduleVestingBase {
-  bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
-  uint256 constant FULL_100 = 100e18;
+contract CSClaim is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable {
+  using SafeERC20 for IERC20;
 
-  IERC20Metadata public token;
-  bytes32 private root;
+  bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
+  bytes32 public constant SYNDICATE_ROLE = keccak256('SYNDICATE_ROLE');
+  uint256 public constant FULL_100 = 100e18;
+
+  uint256 public nextId;
 
   address public receiver; // Address will receive fee amount
   uint public feePercentage; // Xe18
 
-  mapping(address => ClaimerInfo) public claimerInfos;
+  mapping(uint256 => PoolInfo) public pools;
+  mapping(uint256 => ScheduleVesting[]) public schedules;
 
-  struct ClaimerInfo {
-    uint256 feeAmount; // fee amount
-    uint256 claimedAmount; // received token amount
+  // pool => user => claimed amount
+  mapping(uint256 => mapping(address => uint256)) public claimedAmounts;
+
+  struct PoolInfo {
+    address owner;
+    IERC20 token;
+    bytes32 root;
+    uint256 feePercentage;
+    uint256 fundedAmount;
+    uint256 claimedAmount;
   }
 
+  struct ScheduleVesting {
+    uint256 date;
+    uint256 endDate;
+    uint256 unlockPercent;
+    uint256 period;
+  }
+
+  event PoolCreated(uint256 id, address owner, IERC20 token);
   event Claimed(address indexed claimer, uint256 tokenAmount, uint256 feeAmount);
+
+  modifier onlyAdminOrOwner(uint256 id) {
+    require(hasRole(ADMIN_ROLE, msg.sender) || pools[id].owner == msg.sender, 'Not admin or owner');
+    _;
+  }
 
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor() {
     _disableInitializers();
   }
 
-  function initialize(address _owner, address _receiver, uint _feePercentage, IERC20Metadata _token) public initializer {
+  function initialize(address _owner, address _receiver, uint _feePercentage) public initializer {
     __UUPSUpgradeable_init();
     __AccessControl_init();
     __Pausable_init();
@@ -44,68 +67,132 @@ contract CSClaim is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeab
 
     receiver = _receiver;
     feePercentage = _feePercentage;
-    token = _token;
   }
 
-  function verify(bytes32[] memory proof, address addr, uint256 amount) public view {
+  function verify(uint256 id, bytes32[] memory proof, address addr, uint256 amount) public view {
+    bytes32 root = pools[id].root;
     bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(addr, amount))));
     require(MerkleProof.verify(proof, root, leaf), 'Invalid proof');
   }
 
-  function claim(bool _invalidate, uint256 _totalAmount, bytes32[] memory _proof) external whenNotPaused {
-    verify(_proof, msg.sender, _totalAmount);
+  function claim(uint256 id, uint256 index, uint256 _totalAmount, bytes32[] memory _proof) external whenNotPaused {
+    verify(id, _proof, msg.sender, _totalAmount);
 
-    if (_invalidate) {
-      invalidate();
-    }
+    PoolInfo memory poolInfo = pools[id];
+    ScheduleVesting memory schedule = schedules[id][index];
 
-    uint256 _maxPercentage = getMaxPercentage();
-    if (_maxPercentage > FULL_100) {
-      revert InvalidPercentage(_maxPercentage);
-    }
+    require(block.timestamp >= schedule.date, 'Not started yet');
 
-    ClaimerInfo storage claimerInfo = claimerInfos[msg.sender];
-
-    uint256 _claimedAmount = claimerInfo.claimedAmount;
-    uint256 _maxClaim = (_totalAmount * _maxPercentage) / FULL_100;
-    uint256 _feeAmount = ((_maxClaim - _claimedAmount) * feePercentage) / FULL_100;
-    uint256 _claimableAmount = _maxClaim - _claimedAmount - _feeAmount;
-
-    claimerInfo.claimedAmount = _maxClaim;
-
-    if (_claimableAmount > 0) {
-      claimerInfo.feeAmount += _feeAmount;
-
-      if(_feeAmount > 0) {
-        token.transfer(receiver, _feeAmount); // Transfer fee
+    uint256 claimablePercent;
+    if (schedule.date == schedule.endDate || block.timestamp > schedule.endDate) {
+      // Claim all
+      claimablePercent = schedule.unlockPercent;
+    } else {
+      uint256 curPercent;
+      if (index > 0) {
+        unchecked {
+          claimablePercent = schedules[id][index - 1].unlockPercent;
+          curPercent = schedule.unlockPercent - claimablePercent;
+        }
+      } else {
+        claimablePercent = 0;
+        curPercent = schedule.unlockPercent;
       }
-      token.transfer(msg.sender, _claimableAmount); // Transfer tokens
-
-      emit Claimed(msg.sender, _claimableAmount, _feeAmount);
+      uint256 total;
+      uint256 cur;
+      unchecked {
+        total = 1 + (schedule.endDate - schedule.date) / schedule.period;
+        cur = 1 + (block.timestamp - schedule.date) / schedule.period;
+        claimablePercent += (cur * curPercent) / total;
+      }
+      if (claimablePercent > schedule.unlockPercent) {
+        // just sure
+        claimablePercent = schedule.unlockPercent;
+      }
     }
+
+    uint256 _maxClaim;
+    unchecked {
+      _maxClaim = (_totalAmount * claimablePercent) / FULL_100;
+    }
+    uint256 claimed = claimedAmounts[id][msg.sender];
+    if (_maxClaim > claimed) {
+      uint256 _claimableAmount;
+      unchecked {
+        _claimableAmount = _maxClaim - claimed;
+        pools[id].claimedAmount += _claimableAmount;
+      }
+      claimedAmounts[id][msg.sender] = _maxClaim;
+      if (poolInfo.feePercentage > 0) {
+        uint256 _feeAmount;
+        unchecked {
+          _feeAmount = (_claimableAmount * poolInfo.feePercentage) / FULL_100;
+        }
+        poolInfo.token.safeTransfer(receiver, _feeAmount); // Transfer fee
+        emit Claimed(msg.sender, _claimableAmount, _feeAmount);
+        unchecked {
+          _claimableAmount -= _feeAmount;
+        }
+      } else {
+        emit Claimed(msg.sender, _claimableAmount, 0);
+      }
+      poolInfo.token.safeTransfer(msg.sender, _claimableAmount); // Transfer fee
+    }
+  }
+
+  function fund(uint256 id, uint256 amount) external {
+    PoolInfo storage poolInfo = pools[id];
+    poolInfo.token.safeTransferFrom(msg.sender, address(this), amount);
+    poolInfo.fundedAmount += amount;
   }
 
   // GETTERS
+  function getSchedules(uint256 id) external view returns (ScheduleVesting[] memory) {
+    return schedules[id];
+  }
+
+  /// POOL owner FUNCTIONS
+  function syncdicateAdd(IERC20 _token, bytes32 _root) external onlyRole(SYNDICATE_ROLE) whenNotPaused {
+    _addPool(msg.sender, _token, _root, feePercentage);
+  }
+
+  function setSchedules(uint256 id, ScheduleVesting[] calldata _schedules) external onlyAdminOrOwner(id) {
+    delete schedules[id];
+    for (uint256 i = 0; i < _schedules.length; ) {
+      ScheduleVesting memory schedule = _schedules[i];
+      require(schedule.endDate >= schedule.date, 'Invalid date');
+      require(schedule.period > 0 || schedule.endDate == schedule.date, 'Invalid period');
+      require(schedule.unlockPercent <= FULL_100, 'Invalid percent');
+      schedules[id].push(schedule);
+      unchecked {
+        i++;
+      }
+    }
+  }
+
+  function setRoot(uint256 id, bytes32 _root) external onlyAdminOrOwner(id) {
+    pools[id].root = _root;
+  }
+
+  function withdraw(uint256 id) external onlyAdminOrOwner(id) {
+    PoolInfo storage poolInfo = pools[id];
+    uint256 diff = poolInfo.fundedAmount - poolInfo.claimedAmount;
+    poolInfo.fundedAmount = poolInfo.claimedAmount;
+    poolInfo.token.safeTransfer(msg.sender, diff);
+  }
 
   /// ADMIN FUNCTIONS
-  function addSchedules(Schedule[] calldata _schedules) external onlyRole(ADMIN_ROLE) {
-    _addSchedules(_schedules);
+  function adminAdd(
+    address _owner,
+    IERC20 _token,
+    bytes32 _root,
+    uint256 _feePercentage
+  ) external onlyRole(ADMIN_ROLE) {
+    _addPool(_owner, _token, _root, _feePercentage);
   }
 
-  function setRoot(bytes32 _root) external onlyRole(ADMIN_ROLE) {
-    root = _root;
-  }
-
-  function setToken(IERC20Metadata _value) external onlyRole(ADMIN_ROLE) {
-    token = _value;
-  }
-
-  function setReceiver(address _receiver) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    receiver = _receiver;
-  }
-
-  function setFeePercentage(uint _feePercentage) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    feePercentage = _feePercentage;
+  function setPoolFeePercentage(uint256 id, uint256 _feePercentage) external onlyRole(ADMIN_ROLE) {
+    pools[id].feePercentage = _feePercentage;
   }
 
   function pause() external onlyRole(ADMIN_ROLE) {
@@ -116,10 +203,34 @@ contract CSClaim is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeab
     _unpause();
   }
 
-  function removeToken(IERC20Metadata _token) external onlyRole(DEFAULT_ADMIN_ROLE) {
+  /// SUPER ADMIN FUNCTIONS
+  function setFeePercentage(uint _feePercentage) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    feePercentage = _feePercentage;
+  }
+
+  function setReceiver(address _receiver) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    receiver = _receiver;
+  }
+
+  function removeToken(IERC20 _token) external onlyRole(DEFAULT_ADMIN_ROLE) {
     uint256 balance = _token.balanceOf(address(this));
     _token.transfer(msg.sender, balance);
   }
 
   function _authorizeUpgrade(address) internal virtual override onlyRole(DEFAULT_ADMIN_ROLE) {}
+
+  function _addPool(address _owner, IERC20 _token, bytes32 _root, uint256 _feePercentage) internal {
+    pools[nextId] = PoolInfo({
+      owner: _owner,
+      token: _token,
+      root: _root,
+      feePercentage: _feePercentage,
+      fundedAmount: 0,
+      claimedAmount: 0
+    });
+    emit PoolCreated(nextId, _owner, _token);
+    unchecked {
+      nextId++;
+    }
+  }
 }

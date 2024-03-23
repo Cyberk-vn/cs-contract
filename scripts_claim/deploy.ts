@@ -8,7 +8,7 @@ async function main() {
 
   const invest = (await upgrades.deployProxy(
     CSClaim,
-    [deployer.address, CONFIG.feeReceiverAddress, CONFIG.feePercentage, CONFIG.rewardTokenAddress],
+    [deployer.address, CONFIG.feeReceiverAddress, CONFIG.feePercentage],
     {
       initializer: 'initialize',
       kind: 'uups',

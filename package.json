@@ -3,6 +3,7 @@
   "scripts": {
     "test:plan": "hardhat test test/plan.test.ts",
     "test:invest": "hardhat test test/invest.test.ts",
+    "test:claim": "hardhat test test/claim.test.ts",
     "test:scheduleVesting": "npx hardhat test test/vesting.schedule.test.ts",
     "deploy:plan:testnet": "hardhat run --network testnet scripts/deploy.ts",
     "plan:set-fees:testnet": "hardhat run --network testnet scripts/set-fees.ts",
@@ -25,6 +26,7 @@
     "invest:withdraw:eth": "hardhat run --network eth scripts/withdrawFund.ts",
     "claim:test====": "",
     "deploy:claim:test": "hardhat run --network testnet scripts_claim/deploy.ts",
+    "claim:add-pool:testnet": "hardhat run --network testnet scripts_claim/add-pool.ts",
     "claim:add-schedules:testnet": "hardhat run --network testnet scripts_claim/add-schedules.ts",
     "claim:set-whitelist:testnet": "hardhat run --network testnet scripts_claim/set-whitelist.ts",
     "claim:set-token:testnet": "hardhat run --network testnet scripts_claim/set-token.ts",
