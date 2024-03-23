@@ -119,7 +119,7 @@ describe('CSClaim', function () {
   });
   it('Fund', async function () {
     await token.connect(poolOwner).approve(csClaim.address, parseUnits('10000', TOKEN_DECIMALS));
-    await csClaim.connect(poolOwner).fund(0, parseUnits('10000', TOKEN_DECIMALS));
+    await csClaim.connect(poolOwner).fund(0, parseUnits('1000', TOKEN_DECIMALS));
   });
   it('add vesting', async function () {
     await csClaim.connect(deployer).setSchedules(0, test_claimMaximumDates3);
@@ -129,8 +129,8 @@ describe('CSClaim', function () {
   });
 
   it('Claim', async function () {
-    // expect(await csClaim.connect(deployer).currentScheduleId()).eq(BigNumber.from('0'));
-    // expect(await csClaim.connect(deployer).getMaxPercentage()).eq(parseEther('50'));
+    await expect(csClaim.connect(user1).claim(0, 0, TOKEN_AMOUNT, proof1)).revertedWith(/Not started yet/);
+
     await time.increaseTo(+test_claimMaximumDates3[0].date);
 
     // 50% => TOKEN_AMOUNT/2 => 400
@@ -173,6 +173,8 @@ describe('CSClaim', function () {
   });
 
   it('Should user 3 claim and lose fee percentage', async () => {
+    await expect(csClaim.connect(user3).claim(0, 4, TOKEN_AMOUNT, proof3)).revertedWith(/Not enough fund/);
+    await csClaim.connect(poolOwner).fund(0, parseUnits('600', TOKEN_DECIMALS));
     const feeReceiverBalance = await token.balanceOf(feeReceiver.address);
 
     // 100% - 1% fee => 99%
@@ -199,5 +201,49 @@ describe('CSClaim', function () {
   });
   it('Claim2', async () => {
     // first 10%, cliff 6M 1% every day
+    const start = currentUnixTime + 300 * DAY_IN_SECONDS;
+    const start2 = start + 6 * 30 * DAY_IN_SECONDS;
+    const vestings = [
+      {
+        date: start,
+        endDate: start,
+        unlockPercent: parseEther('10'),
+        period: '0',
+      },
+      {
+        date: start2,
+        endDate: start2 + 89 * DAY_IN_SECONDS, // 90 days
+        unlockPercent: parseEther('100'),
+        period: DAY_IN_SECONDS,
+      },
+    ];
+    await csClaim.connect(poolOwner).setSchedules(1, vestings);
+    await token.connect(poolOwner).approve(csClaim.address, parseUnits('10000', TOKEN_DECIMALS));
+    await csClaim.connect(poolOwner).fund(1, parseUnits('1000', TOKEN_DECIMALS));
+
+    await time.increaseTo(start);
+    await expect(csClaim.connect(user1).claim(1, 0, TOKEN_AMOUNT, proof1)).changeTokenBalance(
+      token,
+      user1,
+      parseUnits('80', TOKEN_DECIMALS),
+    );
+    await time.increaseTo(start2);
+    await expect(csClaim.connect(user1).claim(1, 1, TOKEN_AMOUNT, proof1)).changeTokenBalance(
+      token,
+      user1,
+      parseUnits('8', TOKEN_DECIMALS),
+    );
+    await time.increaseTo(start2 + 4 * DAY_IN_SECONDS);
+    await expect(csClaim.connect(user1).claim(1, 1, TOKEN_AMOUNT, proof1)).changeTokenBalance(
+      token,
+      user1,
+      parseUnits('32', TOKEN_DECIMALS),
+    );
+    await time.increaseTo(start2 + 300 * DAY_IN_SECONDS);
+    await expect(csClaim.connect(user1).claim(1, 1, TOKEN_AMOUNT, proof1)).changeTokenBalance(
+      token,
+      user1,
+      parseUnits('680', TOKEN_DECIMALS),
+    );
   });
 });

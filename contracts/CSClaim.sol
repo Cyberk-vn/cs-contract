@@ -78,7 +78,7 @@ contract CSClaim is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeab
   function claim(uint256 id, uint256 index, uint256 _totalAmount, bytes32[] memory _proof) external whenNotPaused {
     verify(id, _proof, msg.sender, _totalAmount);
 
-    PoolInfo memory poolInfo = pools[id];
+    PoolInfo storage pool = pools[id];
     ScheduleVesting memory schedule = schedules[id][index];
 
     require(block.timestamp >= schedule.date, 'Not started yet');
@@ -120,15 +120,16 @@ contract CSClaim is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeab
       uint256 _claimableAmount;
       unchecked {
         _claimableAmount = _maxClaim - claimed;
-        pools[id].claimedAmount += _claimableAmount;
+        pool.claimedAmount += _claimableAmount;
       }
+      require(pool.fundedAmount >= pool.claimedAmount, 'Not enough fund');
       claimedAmounts[id][msg.sender] = _maxClaim;
-      if (poolInfo.feePercentage > 0) {
+      if (pool.feePercentage > 0) {
         uint256 _feeAmount;
         unchecked {
-          _feeAmount = (_claimableAmount * poolInfo.feePercentage) / FULL_100;
+          _feeAmount = (_claimableAmount * pool.feePercentage) / FULL_100;
         }
-        poolInfo.token.safeTransfer(receiver, _feeAmount); // Transfer fee
+        pool.token.safeTransfer(receiver, _feeAmount); // Transfer fee
         emit Claimed(msg.sender, _claimableAmount, _feeAmount);
         unchecked {
           _claimableAmount -= _feeAmount;
@@ -136,7 +137,7 @@ contract CSClaim is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeab
       } else {
         emit Claimed(msg.sender, _claimableAmount, 0);
       }
-      poolInfo.token.safeTransfer(msg.sender, _claimableAmount); // Transfer fee
+      pool.token.safeTransfer(msg.sender, _claimableAmount); // Transfer fee
     }
   }
 
