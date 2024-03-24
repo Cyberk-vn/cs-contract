@@ -23,6 +23,7 @@ contract CSClaim is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeab
   uint public feePercentage; // Xe18
 
   mapping(uint256 => PoolInfo) public pools;
+  // pool => schedules
   mapping(uint256 => ScheduleVesting[]) public schedules;
 
   // pool => user => claimed amount
@@ -159,12 +160,15 @@ contract CSClaim is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeab
 
   function setSchedules(uint256 id, ScheduleVesting[] calldata _schedules) external onlyAdminOrOwner(id) {
     delete schedules[id];
+    uint256 lastPercent = 0;
     for (uint256 i = 0; i < _schedules.length; ) {
       ScheduleVesting memory schedule = _schedules[i];
+      require(schedule.unlockPercent > lastPercent, 'Invalid percent');
       require(schedule.endDate >= schedule.date, 'Invalid date');
       require(schedule.period > 0 || schedule.endDate == schedule.date, 'Invalid period');
       require(schedule.unlockPercent <= FULL_100, 'Invalid percent');
       schedules[id].push(schedule);
+      lastPercent = schedule.unlockPercent;
       unchecked {
         i++;
       }

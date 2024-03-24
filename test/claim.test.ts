@@ -207,6 +207,12 @@ describe('CSClaim', function () {
       {
         date: start,
         endDate: start,
+        unlockPercent: parseEther('5'),
+        period: '0',
+      },
+      {
+        date: start + DAY_IN_SECONDS,
+        endDate: start + DAY_IN_SECONDS,
         unlockPercent: parseEther('10'),
         period: '0',
       },
@@ -225,25 +231,32 @@ describe('CSClaim', function () {
     await expect(csClaim.connect(user1).claim(1, 0, TOKEN_AMOUNT, proof1)).changeTokenBalance(
       token,
       user1,
-      parseUnits('80', TOKEN_DECIMALS),
+      parseUnits('40', TOKEN_DECIMALS),
     );
-    await time.increaseTo(start2);
-    await expect(csClaim.connect(user1).claim(1, 1, TOKEN_AMOUNT, proof1)).changeTokenBalance(
+    await time.increaseTo(start2 + 3600);
+    await expect(csClaim.connect(user1).claim(1, 2, TOKEN_AMOUNT, proof1)).changeTokenBalance(
       token,
       user1,
-      parseUnits('8', TOKEN_DECIMALS),
+      parseUnits('48', TOKEN_DECIMALS),
     );
     await time.increaseTo(start2 + 4 * DAY_IN_SECONDS);
-    await expect(csClaim.connect(user1).claim(1, 1, TOKEN_AMOUNT, proof1)).changeTokenBalance(
+    await expect(csClaim.connect(user1).claim(1, 2, TOKEN_AMOUNT, proof1)).changeTokenBalance(
       token,
       user1,
       parseUnits('32', TOKEN_DECIMALS),
     );
     await time.increaseTo(start2 + 300 * DAY_IN_SECONDS);
-    await expect(csClaim.connect(user1).claim(1, 1, TOKEN_AMOUNT, proof1)).changeTokenBalance(
+    await expect(csClaim.connect(user1).claim(1, 2, TOKEN_AMOUNT, proof1)).changeTokenBalance(
       token,
       user1,
       parseUnits('680', TOKEN_DECIMALS),
+    );
+  });
+  it('Withdraw2', async () => {
+    await expect(csClaim.connect(poolOwner).withdraw(1)).changeTokenBalance(
+      token,
+      poolOwner,
+      parseUnits('200', TOKEN_DECIMALS),
     );
   });
 });
