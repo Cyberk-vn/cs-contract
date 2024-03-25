@@ -240,11 +240,10 @@ describe('CSClaim', function () {
       parseUnits('48', TOKEN_DECIMALS),
     );
     await time.increaseTo(start2 + 4 * DAY_IN_SECONDS);
-    await expect(csClaim.connect(user1).claim(1, 2, TOKEN_AMOUNT, proof1)).changeTokenBalance(
-      token,
-      user1,
-      parseUnits('32', TOKEN_DECIMALS),
-    );
+    const tx = csClaim.connect(user1).claim(1, 2, TOKEN_AMOUNT, proof1);
+    await expect(tx).changeTokenBalance(token, user1, parseUnits('32', TOKEN_DECIMALS));
+    const gas = (await tx.then((x) => x.wait())).gasUsed;
+    console.log('Gas used:', gas.toString());
     await time.increaseTo(start2 + 300 * DAY_IN_SECONDS);
     await expect(csClaim.connect(user1).claim(1, 2, TOKEN_AMOUNT, proof1)).changeTokenBalance(
       token,
@@ -258,5 +257,21 @@ describe('CSClaim', function () {
       poolOwner,
       parseUnits('200', TOKEN_DECIMALS),
     );
+  });
+  it('bench set schedules', async () => {
+    const start = currentUnixTime + 1000 * DAY_IN_SECONDS;
+    const vestings = [];
+    for (let i = 1; i <= 48; i++) {
+      vestings.push({
+        date: start + i * DAY_IN_SECONDS,
+        endDate: start + i * DAY_IN_SECONDS,
+        unlockPercent: parseEther(i.toString()),
+        period: '0',
+      });
+    }
+    const tx = await csClaim.connect(poolOwner).setSchedules(1, vestings);
+    const gas = await tx.wait().then((x) => x.gasUsed);
+    const price = parseUnits('20', 'gwei');
+    console.log('Gas used:', formatUnits(gas.mul(price), 'ether'));
   });
 });
