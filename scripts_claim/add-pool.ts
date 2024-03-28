@@ -32,7 +32,7 @@ async function main() {
 
   const tree = StandardMerkleTree.of(treeValues, ['address', 'uint256']);
 
-  const res = await csClaim.adminAdd(deployer.address, token.address, tree.root, parseEther('0'));
+  const res = await csClaim.adminAdd(deployer.address, token.address, tree.root, CONFIG.feePercentage);
   const recept = await res.wait();
   const poolCreated: any = recept.events?.find((x) => x.event === 'PoolCreated');
   console.log('poolCreated=', poolCreated?.args.id.toString());

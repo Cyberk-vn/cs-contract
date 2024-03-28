@@ -38,7 +38,15 @@
     "claim:set-whitelist:mainnet": "hardhat run --network mainnet scripts_claim/set-whitelist.ts",
     "claim:set-token:mainnet": "hardhat run --network mainnet scripts_claim/set-token.ts",
     "claim:set-fee-percentage:mainnet": "hardhat run --network mainnet scripts_claim/set-fee-percentage.ts",
-    "claim:set-fee-receiver:mainnet": "hardhat run --network mainnet scripts_claim/set-fee-receiver.ts"
+    "claim:set-fee-receiver:mainnet": "hardhat run --network mainnet scripts_claim/set-fee-receiver.ts",
+    "claim:mainnet==ETH==": "",
+    "deploy:claim:eth": "hardhat run --network eth scripts_claim/deploy.ts",
+    "claim:add-pool:eth": "hardhat run --network eth scripts_claim/add-pool.ts",
+    "claim:add-schedules:eth": "hardhat run --network eth scripts_claim/add-schedules.ts",
+    "claim:set-whitelist:eth": "hardhat run --network eth scripts_claim/set-whitelist.ts",
+    "claim:set-token:eth": "hardhat run --network eth scripts_claim/set-token.ts",
+    "claim:set-fee-percentage:eth": "hardhat run --network eth scripts_claim/set-fee-percentage.ts",
+    "claim:set-fee-receiver:eth": "hardhat run --network eth scripts_claim/set-fee-receiver.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",

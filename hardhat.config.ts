@@ -36,7 +36,7 @@ const config: HardhatUserConfig = {
       accounts: pks.mainnet,
     },
     eth: {
-      url: 'https://eth.llamarpc.com',
+      url: 'https://rpc.ankr.com/eth',
       accounts: pks.mainnet,
     },
   },
