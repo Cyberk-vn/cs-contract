@@ -42,6 +42,7 @@
     "claim:mainnet==ETH==": "",
     "deploy:claim:eth": "hardhat run --network eth scripts_claim/deploy.ts",
     "claim:add-pool:eth": "hardhat run --network eth scripts_claim/add-pool.ts",
+    "claim:add-syndicate:eth": "hardhat run --network eth scripts_claim/add-syndicate.ts",
     "claim:add-schedules:eth": "hardhat run --network eth scripts_claim/add-schedules.ts",
     "claim:set-whitelist:eth": "hardhat run --network eth scripts_claim/set-whitelist.ts",
     "claim:set-token:eth": "hardhat run --network eth scripts_claim/set-token.ts",
