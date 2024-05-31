@@ -37,7 +37,7 @@ const mainnet_config = {
     },
   ],
   rewardTokenAddress: '0xdAC17F958D2ee523a2206206994597C13D831ec7', // USDT in eth - decimal 6
-  feePercentage: parseEther('1.5'),
+  feePercentage: parseEther('1.0'),
   feeReceiverAddress: '0x9D992E869eecc454938C2Ac5590872c4752BF3B5',
   syndicateLead: '0x9a2391e79524F2a4c329c667A38c6c8E0dfa6840',
 };
