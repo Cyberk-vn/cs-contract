@@ -170,23 +170,36 @@ describe('CSClaim', function () {
 
   it('Set fee', async () => {
     await csClaim.connect(deployer).setPoolFeePercentage(0, parseUnits('1', 18));
+    await csClaim.connect(deployer).setFeePercentage(parseUnits('1', 18));
   });
 
   it('Should user 3 claim and lose fee percentage', async () => {
     await expect(csClaim.connect(user3).claim(0, 4, TOKEN_AMOUNT, proof3)).revertedWith(/Not enough fund/);
     await csClaim.connect(poolOwner).fund(0, parseUnits('600', TOKEN_DECIMALS));
-    const feeReceiverBalance = await token.balanceOf(feeReceiver.address);
 
-    // 100% - 1% fee => 99%
+    const poolFeeReceiverAddress = poolOwner.address;
+    const platformFeeReceiverAddress = feeReceiver.address;
+    const poolFeeReceiverBalance = await token.balanceOf(poolFeeReceiverAddress);
+    const platformFeeReceiverBalance = await token.balanceOf(platformFeeReceiverAddress);
+
+    // 100% - 2% fee => 98%
     await expect(csClaim.connect(user3).claim(0, 4, TOKEN_AMOUNT, proof3)).changeTokenBalance(
       token,
       user3,
-      parseUnits('792', TOKEN_DECIMALS),
+      parseUnits('784', TOKEN_DECIMALS),
     );
 
-    const afterBalance = await token.balanceOf(feeReceiver.address);
-    expect(afterBalance).to.eq(feeReceiverBalance.add(parseUnits('8', TOKEN_DECIMALS)));
+    const poolReceiverAfterBalance = await token.balanceOf(poolFeeReceiverAddress);
+    expect(poolReceiverAfterBalance).to.eq(poolFeeReceiverBalance.add(parseUnits('8', TOKEN_DECIMALS)));
+
+    const platformReceiverAfterBalance = await token.balanceOf(platformFeeReceiverAddress);
+    expect(platformReceiverAfterBalance).to.eq(platformFeeReceiverBalance.add(parseUnits('8', TOKEN_DECIMALS)));
   });
+
+  it('Set fee:remove platform fee', async () => {
+    await csClaim.connect(deployer).setFeePercentage(parseUnits('0', 18));
+  });
+
   it('PoolOwner can not create pool', async () => {
     await expect(csClaim.connect(poolOwner).syncdicateAdd(token.address, tree.root)).to.be.revertedWith(
       /AccessControl/,
@@ -256,6 +269,64 @@ describe('CSClaim', function () {
       token,
       poolOwner,
       parseUnits('200', TOKEN_DECIMALS),
+    );
+  });
+  it('Pool3', async () => {
+    const tx = csClaim.connect(poolOwner).syncdicateAdd(token.address, tree.root);
+    await expect(tx).emit(csClaim, 'PoolCreated').withArgs(2, poolOwner.address, token.address);
+  });
+  it('Claim3: with 10% platform fee', async () => {
+    await csClaim.connect(deployer).setFeePercentage(parseUnits('10', 18));
+
+    const lastestTimestamp = await time.latest();
+    const start = lastestTimestamp + 300 * DAY_IN_SECONDS;
+    const start2 = start + 6 * 30 * DAY_IN_SECONDS;
+    const vestings = [
+      {
+        date: start,
+        endDate: start,
+        unlockPercent: parseEther('5'),
+        period: '0',
+      },
+      {
+        date: start + DAY_IN_SECONDS,
+        endDate: start + DAY_IN_SECONDS,
+        unlockPercent: parseEther('10'),
+        period: '0',
+      },
+      {
+        date: start2,
+        endDate: start2 + 89 * DAY_IN_SECONDS, // 90 days
+        unlockPercent: parseEther('100'),
+        period: DAY_IN_SECONDS,
+      },
+    ];
+    await csClaim.connect(poolOwner).setSchedules(2, vestings);
+    await token.connect(poolOwner).approve(csClaim.address, parseUnits('10000', TOKEN_DECIMALS));
+    await csClaim.connect(poolOwner).fund(2, parseUnits('1000', TOKEN_DECIMALS));
+
+    await time.increaseTo(start);
+    await expect(csClaim.connect(user1).claim(2, 0, TOKEN_AMOUNT, proof1)).changeTokenBalance(
+      token,
+      user1,
+      parseUnits('36', TOKEN_DECIMALS),
+    );
+    await time.increaseTo(start2 + 3600);
+    await expect(csClaim.connect(user1).claim(2, 2, TOKEN_AMOUNT, proof1)).changeTokenBalance(
+      token,
+      user1,
+      parseUnits('43.2', TOKEN_DECIMALS),
+    );
+    await time.increaseTo(start2 + 4 * DAY_IN_SECONDS);
+    const tx = csClaim.connect(user1).claim(2, 2, TOKEN_AMOUNT, proof1);
+    await expect(tx).changeTokenBalance(token, user1, parseUnits('28.8', TOKEN_DECIMALS));
+    const gas = (await tx.then((x) => x.wait())).gasUsed;
+    console.log('Gas used:', gas.toString());
+    await time.increaseTo(start2 + 300 * DAY_IN_SECONDS);
+    await expect(csClaim.connect(user1).claim(2, 2, TOKEN_AMOUNT, proof1)).changeTokenBalance(
+      token,
+      user1,
+      parseUnits('612', TOKEN_DECIMALS),
     );
   });
   it('bench set schedules', async () => {

@@ -10,7 +10,7 @@ import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import {SafeERC20} from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/utils/cryptography/MerkleProof.sol';
 
-contract CSClaim is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable {
+contract CSClaim_R2 is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable {
   using SafeERC20 for IERC20;
 
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
