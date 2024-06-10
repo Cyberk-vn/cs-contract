@@ -7,6 +7,7 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 import './ScheduleVestingBase.sol';
 import './IVesting.sol';
 
+// Obsoleted, favor CSClaim
 contract ScheduleVestingImp is ScheduleVestingBase, Ownable {
   function addSchedules(Schedule[] calldata _schedules) external onlyOwner {
     _addSchedules(_schedules);

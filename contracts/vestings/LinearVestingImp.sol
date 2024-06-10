@@ -7,6 +7,7 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 import './LinearVestingBase.sol';
 import './IVesting.sol';
 
+// Obsoleted, favor CSClaim
 contract LinearVestingImp is LinearVestingBase, Ownable {
   function configVesting(
     uint256 _firstTime,

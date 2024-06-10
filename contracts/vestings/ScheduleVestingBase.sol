@@ -4,6 +4,7 @@ pragma solidity ^0.8.19;
 
 import './IVesting.sol';
 
+// Obsoleted, favor CSClaim
 abstract contract ScheduleVestingBase is IVesting {
   struct Schedule {
     uint256 id;

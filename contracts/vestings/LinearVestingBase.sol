@@ -4,6 +4,7 @@ pragma solidity ^0.8.19;
 
 import './IVesting.sol';
 
+// Obsoleted, favor CSClaim
 abstract contract LinearVestingBase is IVesting {
   uint256 constant FULL_100 = 100e18;
 

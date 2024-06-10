@@ -87,7 +87,7 @@ contract CSClaim is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeab
     require(block.timestamp >= schedule.date, 'Not started yet');
 
     uint256 claimablePercent;
-    if (schedule.date == schedule.endDate || block.timestamp > schedule.endDate) {
+    if (block.timestamp > schedule.endDate) {
       // Claim all
       claimablePercent = schedule.unlockPercent;
     } else {

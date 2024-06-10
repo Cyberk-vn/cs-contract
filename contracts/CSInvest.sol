@@ -119,6 +119,7 @@ contract CSInvest is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradea
     emit Contributed(msg.sender, amount);
   }
 
+  // obsolete
   function claim(bool _invalidate) external whenNotPaused {
     if (_invalidate) {
       vesting.invalidate();

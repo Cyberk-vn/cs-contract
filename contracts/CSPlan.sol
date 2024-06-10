@@ -11,6 +11,7 @@ import {UUPSUpgradeable} from '@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {ERC20} from '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
+// Obsoleted, favor transfer TOKEN directly to Accounting Wallet
 contract CSPlan is AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable {
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
 
